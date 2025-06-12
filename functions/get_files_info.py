@@ -24,7 +24,7 @@ def get_files_info(working_directory, directory=None):
     dir_contents_list = []
     for thing in contents:
         thing_path = os.path.join(directory_path, thing)
-        item = f"- {thing}: file_size={os.path.getsize(thing_path)}, is_dir={os.path.isfile(thing_path)}"
+        item = f"- {thing}: file_size={os.path.getsize(thing_path)} bytes, is_dir={not os.path.isfile(thing_path)}"
         dir_contents_list.append(item)
 
     dir_contents = "\n".join(dir_contents_list)
