@@ -6,7 +6,7 @@ def get_file_content(working_directory, file_path):
     except Exception as e:
         return f"Error: {e}"
     try:
-        file_full_path = os.path.join(working_path, file_path)
+        file_full_path = os.path.abspath(os.path.join(working_path, file_path))
     except Exception as e:
         return f"Error: {e}"
 
