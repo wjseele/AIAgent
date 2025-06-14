@@ -3,10 +3,10 @@ import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from functions.get_files_info import get_files_info
-from functions.get_file_content import get_file_content
-from functions.run_python_file import run_python_file
-from functions.write_file import write_file
+# from functions.get_files_info import get_files_info
+# from functions.get_file_content import get_file_content
+# from functions.run_python_file import run_python_file
+# from functions.write_file import write_file
 
 def main():
     load_dotenv()
@@ -61,7 +61,7 @@ def main():
     )
     if verbose:
         if response.function_calls != None:
-            print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+            print(f"Calling function: {response.function_calls[0].name}({response.function_calls[0].args})")
         else:
             print(response.text)
         print(f"User prompt: {user_prompt}")
