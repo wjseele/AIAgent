@@ -17,13 +17,13 @@ def get_available_functions():
 
     schema_get_file_content = types.FunctionDeclaration(
         name="get_file_content",
-        description="Get the content of the files in the specified directory, constrained to the working directory.",
+        description="Get the content of a file in the specified directory, constrained to the working directory.",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "directory": types.Schema(
+                "file_path": types.Schema(
                     type=types.Type.STRING,
-                    description="The directory to get files from, relative to the working directory. If not provided, get files in the working directory itself.",
+                    description="The file path to read from, relative to the working directory. It must be provided.",
                 ),
             },
         ),
@@ -31,13 +31,13 @@ def get_available_functions():
 
     schema_run_python_file = types.FunctionDeclaration(
         name="run_python_file",
-        description="Run Python files in the specified directory, constrained to the working directory.",
+        description="Run Python files in the specified path, constrained to the working directory.",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "directory": types.Schema(
+                "file_path": types.Schema(
                     type=types.Type.STRING,
-                    description="The directory to run files from, relative to the working directory. If not provided, run files in the working directory itself.",
+                    description="The file path to the python file, relative to the working directory. It must be provided.",
                 ),
             },
         ),
@@ -45,13 +45,17 @@ def get_available_functions():
 
     schema_write_file = types.FunctionDeclaration(
         name="write_file",
-        description="Write files in the specified directory, constrained to the working directory.",
+        description="Write files in the specified path, constrained to the working directory.",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "directory": types.Schema(
+                "file_path": types.Schema(
                     type=types.Type.STRING,
-                    description="The directory to write files in, relative to the working directory. If not provided, write files in the working directory itself.",
+                    description="The file path to the file to write in, relative to the working directory. It must be provided.",
+                ),
+                "content": types.Schema(
+                    type=types.Type.STRING,
+                    description="The contents to write to the specified file. It must be provided.",
                 ),
             },
         ),
