@@ -4,6 +4,12 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from functions.get_file_content import get_file_content
+from functions.get_files_info import get_files_info
+from functions.run_python_file import run_python_file
+from functions.write_file import write_file
+from pickletools import name2i
+
 def main():
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -95,18 +101,69 @@ def main():
         ]
     )
 
+    functions_dict = {
+        "get_files_info": get_files_info,
+        "get_file_content": get_file_content,
+        "run_python_file": run_python_file,
+        "write_file": write_file
+    }
+
     response = client.models.generate_content(
         model="gemini-2.0-flash-001",
         contents=messages,
         config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt)
     )
+
+    function_call_part = response.function_calls[0]
+
+    working_directory = "./calculator"
+    function_name = function_call_part.name
+    function_args = function_call_part.args
+
+    if verbose:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+        call_function(function_call_part, verbose)
+    else:
+        print(f" - Calling function: {function_call_part.name}")
+        call_function(function_call_part, verbose)
+
     if verbose:
         if response.function_calls != None:
             print(f"Calling function: {response.function_calls[0].name}({response.function_calls[0].args})")
         else:
             print(response.text)
         print(f"User prompt: {user_prompt}")
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+
+def call_function(function_call_part, verbose=False):
+
+
+
+
+
+
+    if function_name not in functions_dict:
+        return types.Content(
+            role="tool",
+            parts=[
+                types.Part.from_function_response(
+                    name=function_name,
+                    response={"error": f"Unknown function: {function_name}"},
+                )
+            ],
+        )
+
+    function_results =
+
+    return types.Content(
+        role="tool",
+        parts=[
+            types.Part.from_function_response(
+                name=function_name,
+                response={"result": function_result},
+            )
+        ],
+    )
 
 main()
