@@ -47,6 +47,7 @@ def main():
         contents=messages,
         config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt)
     )
+
     if response.function_calls:
         function_call_part = response.function_calls[0]
         function_call_result = call_function(function_call_part, verbose)
@@ -58,7 +59,6 @@ def main():
         print(response.text)
     else:
         print("No response text or function calls received.")
-
 
     if response.usage_metadata:
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
