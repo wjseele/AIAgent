@@ -8,12 +8,13 @@ from functions.get_file_content import get_file_content
 from functions.get_files_info import get_files_info
 from functions.run_python_file import run_python_file
 from functions.write_file import write_file
-from pickletools import name2i
+from get_available_functions import get_available_functions
 
 def main():
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
+    model_name = "gemini-2.0-flash-001"
 
     if len(sys.argv) < 2:
         print("Usage: python3 main.py <prompt>")
@@ -35,72 +36,35 @@ def main():
     All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
     """
 
-    verbose = True
+    verbose = False
     if len(sys.argv) == 3 and sys.argv[2] == "--verbose":
         verbose = True
 
-    schema_get_files_info = types.FunctionDeclaration(
-        name="get_files_info",
-        description="Lists files in the specified directory along with their sizes, constrained to the working directory.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "directory": types.Schema(
-                    type=types.Type.STRING,
-                    description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
-                ),
-            },
-        ),
-    )
+    available_functions = get_available_functions()
 
-    schema_get_file_content = types.FunctionDeclaration(
-        name="get_file_content",
-        description="Get the content of the files in the specified directory, constrained to the working directory.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "directory": types.Schema(
-                    type=types.Type.STRING,
-                    description="The directory to get files from, relative to the working directory. If not provided, get files in the working directory itself.",
-                ),
-            },
-        ),
+    response = client.models.generate_content(
+        model=model_name,
+        contents=messages,
+        config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt)
     )
+    if response.function_calls:
+        function_call_part = response.function_calls[0]
+        function_call_result = call_function(function_call_part, verbose)
+        if not function_call_result.parts[0].function_response.response:
+            raise Exception("Nothing returned")
+        elif verbose:
+            print(f"-> {function_call_result.parts[0].function_response.response}")
+    elif response.text and verbose:
+        print(response.text)
+    else:
+        print("No response text or function calls received.")
 
-    schema_run_python_file = types.FunctionDeclaration(
-        name="run_python_file",
-        description="Run Python files in the specified directory, constrained to the working directory.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "directory": types.Schema(
-                    type=types.Type.STRING,
-                    description="The directory to run files from, relative to the working directory. If not provided, run files in the working directory itself.",
-                ),
-            },
-        ),
-    )
 
-    schema_write_file = types.FunctionDeclaration(
-        name="write_file",
-        description="Write files in the specified directory, constrained to the working directory.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "directory": types.Schema(
-                    type=types.Type.STRING,
-                    description="The directory to write files in, relative to the working directory. If not provided, write files in the working directory itself.",
-                ),
-            },
-        ),
-    )
+    if response.usage_metadata:
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-    available_functions = types.Tool(
-        function_declarations=[
-            schema_get_files_info, schema_get_file_content, schema_run_python_file, schema_write_file
-        ]
-    )
-
+def call_function(function_call_part, verbose=False):
     functions_dict = {
         "get_files_info": get_files_info,
         "get_file_content": get_file_content,
@@ -108,40 +72,7 @@ def main():
         "write_file": write_file
     }
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-001",
-        contents=messages,
-        config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt)
-    )
-
-    function_call_part = response.function_calls[0]
-
-    working_directory = "./calculator"
     function_name = function_call_part.name
-    function_args = function_call_part.args
-
-    if verbose:
-        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
-        call_function(function_call_part, verbose)
-    else:
-        print(f" - Calling function: {function_call_part.name}")
-        call_function(function_call_part, verbose)
-
-    if verbose:
-        if response.function_calls != None:
-            print(f"Calling function: {response.function_calls[0].name}({response.function_calls[0].args})")
-        else:
-            print(response.text)
-        print(f"User prompt: {user_prompt}")
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-
-def call_function(function_call_part, verbose=False):
-
-
-
-
-
 
     if function_name not in functions_dict:
         return types.Content(
@@ -154,7 +85,15 @@ def call_function(function_call_part, verbose=False):
             ],
         )
 
-    function_results =
+    if verbose:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+    else:
+        print(f" - Calling function: {function_call_part.name}")
+
+    function_args = function_call_part.args
+    function_args["working_directory"] = "./calculator"
+    actual_function = functions_dict[function_name]
+    function_result = actual_function(**function_args)
 
     return types.Content(
         role="tool",
